@@ -7,9 +7,8 @@ matplotlib.use("Agg")
 from data_loader import load_data, STAGE_NAMES
 from preprocess import preprocess_data
 from visualize import run_visualization
-from model import SleepStageCNN
-from train import train_model
 from evaluate import evaluate_model
+from compare_training import main as compare_main
 
 
 def main():
@@ -29,6 +28,8 @@ def main():
 
     X_train, X_val, X_test, y_train, y_val, y_test = preprocess_data(X, y)
 
+    from train import train_model
+
     model, history = train_model(
         X_train,
         y_train,
@@ -39,12 +40,17 @@ def main():
         batch_size=32,
         epochs=10,
         lr=0.001,
+        balanced=False,
     )
 
     evaluate_model(model, X_test, y_test, class_names=STAGE_NAMES)
-
     torch.save(model.state_dict(), "sleep_stage_cnn.pth")
-    print("\nModel saved to: sleep_stage_cnn.pth")
+    print("Model saved to: sleep_stage_cnn.pth")
+
+    print("\n" + "=" * 60)
+    print("RUNNING CLASS-BALANCE COMPARISON")
+    print("=" * 60)
+    compare_main()
 
     print("\n" + "=" * 60)
     print("PIPELINE COMPLETE")

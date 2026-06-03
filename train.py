@@ -15,26 +15,42 @@ def train_model(
     batch_size=32,
     epochs=10,
     lr=0.001,
+    balanced=False,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"\nTraining on: {device}")
+    tag = "CLASS-BALANCED" if balanced else "BASELINE"
+    print(f"\n--- {tag} TRAINING ---")
+    print(f"Training on: {device}")
 
     X_train_t = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1)
     y_train_t = torch.tensor(y_train, dtype=torch.long)
-    X_val_t = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1)
-    y_val_t = torch.tensor(y_val, dtype=torch.long)
+    X_val_t = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1).to(device)
+    y_val_t = torch.tensor(y_val, dtype=torch.long).to(device)
 
     train_dataset = TensorDataset(X_train_t, y_train_t)
     val_dataset = TensorDataset(X_val_t, y_val_t)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
-    model = SleepStageCNN(input_length, n_classes).to(device)
-    n_params = sum(p.numel() for p in model.parameters())
-    print(f"Model parameters: {n_params:,}")
-    print(model)
+    if balanced:
+        class_counts = np.bincount(y_train)
+        class_weights = len(y_train) / (n_classes * class_counts)
+        class_weights_t = torch.tensor(class_weights, dtype=torch.float32).to(device)
+        sample_weights = 1.0 / class_counts[y_train]
+        sampler = torch.utils.data.WeightedRandomSampler(
+            sample_weights, len(sample_weights), replacement=True
+        )
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
+        criterion = nn.CrossEntropyLoss(weight=class_weights_t)
+        print(
+            f"Class weights: {dict(zip(range(n_classes), [f'{w:.3f}' for w in class_weights]))}"
+        )
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        criterion = nn.CrossEntropyLoss()
 
-    criterion = nn.CrossEntropyLoss()
+    model = SleepStageCNN(input_length, n_classes).to(device)
+    print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
@@ -46,8 +62,7 @@ def train_model(
         for batch_X, batch_y in train_loader:
             batch_X, batch_y = batch_X.to(device), batch_y.to(device)
             optimizer.zero_grad()
-            outputs = model(batch_X)
-            loss = criterion(outputs, batch_y)
+            loss = criterion(model(batch_X), batch_y)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
@@ -71,7 +86,7 @@ def train_model(
         scheduler.step()
 
         print(
-            f"Epoch [{epoch + 1}/{epochs}]  Loss: {avg_loss:.4f}  Val Acc: {val_acc:.4f} ({correct}/{total})"
+            f"  Epoch [{epoch + 1}/{epochs}]  Loss: {avg_loss:.4f}  Val Acc: {val_acc:.4f} ({correct}/{total})"
         )
 
     return model, history
