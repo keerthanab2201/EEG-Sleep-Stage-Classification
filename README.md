@@ -1,6 +1,6 @@
 # EEG Sleep-Stage Classification
 
-A research-style pipeline for sleep-stage classification using real electroencephalography (EEG) data from the Sleep-EDF Expanded database. The system loads raw polysomnography (PSG) recordings, extracts EEG channels, segments them into 30-second epochs aligned with expert-scored hypnograms, and compares multiple classifiers: 1D CNN, Logistic Regression, and Random Forest.
+This is a pipeline for sleep-stage classification using real electroencephalography (EEG) data from the Sleep-EDF Expanded database. The system loads raw polysomnography (PSG) recordings, extracts EEG channels, segments them into 30-second epochs aligned with expert-scored hypnograms, and compares multiple classifiers: 1D CNN, Logistic Regression, and Random Forest.
 
 ## Background
 
