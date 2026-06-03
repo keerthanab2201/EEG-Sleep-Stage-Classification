@@ -9,6 +9,7 @@ from preprocess import preprocess_data
 from visualize import run_visualization
 from evaluate import evaluate_model
 from compare_training import main as compare_main
+from classical_baselines import main as classical_main
 
 
 def main():
@@ -51,6 +52,11 @@ def main():
     print("RUNNING CLASS-BALANCE COMPARISON")
     print("=" * 60)
     compare_main()
+
+    print("\n" + "=" * 60)
+    print("RUNNING CLASSICAL ML BASELINES")
+    print("=" * 60)
+    classical_main()
 
     print("\n" + "=" * 60)
     print("PIPELINE COMPLETE")
